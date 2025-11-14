@@ -11,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.playlist.domain.models.Track
@@ -21,15 +20,16 @@ import com.example.playlist.domain.models.Track
 fun SearchScreen(
     onBack: () -> Unit
 ) {
-    val vm: SearchViewModel = viewModel()
-    val context = LocalContext.current
+    val vm: SearchViewModel = viewModel(
+        factory = SearchViewModel.getViewModelFactory()
+    )
     val state by vm.state.collectAsState()
 
     var query by remember { mutableStateOf("") }
 
-    // При первом заходе грузим все треки с устройства
+    // При первом заходе — загрузить все треки (по факту search(""))
     LaunchedEffect(Unit) {
-        vm.loadAllTracks(context)
+        vm.fetchAllTracks()
     }
 
     Scaffold(
@@ -56,7 +56,13 @@ fun SearchScreen(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(text = "Поиск") },
                 leadingIcon = {
-                    IconButton(onClick = { /* поиск делаем ниже через фильтр */ }) {
+                    IconButton(
+                        onClick = {
+                            // если хочешь искать через репозиторий — можно вызвать:
+                            // vm.search(query)
+                            // пока оставляем фильтрацию по уже загруженному списку
+                        }
+                    ) {
                         Icon(Icons.Default.Search, contentDescription = "Поиск")
                     }
                 },

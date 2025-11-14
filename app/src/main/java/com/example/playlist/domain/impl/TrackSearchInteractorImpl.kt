@@ -7,6 +7,8 @@ import com.example.playlist.domain.models.Track
 class TrackSearchInteractorImpl(
     private val repository: TracksRepository
 ) : TrackSearchInteractor {
-    override fun searchTracks(expression: String): List<Track> =
-        repository.searchTracks(expression)
+
+    override suspend fun searchTracks(expression: String): List<Track> {
+        return repository.searchTracks(expression)
+    }
 }

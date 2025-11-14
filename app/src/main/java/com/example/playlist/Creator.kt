@@ -8,7 +8,7 @@ import com.example.playlist.domain.impl.TrackSearchInteractorImpl
 
 object Creator {
 
-    private fun getTracksRepository(): TracksRepository {
+    fun getTracksRepository(): TracksRepository {
         return TracksRepositoryImpl(RetrofitNetworkClient())
     }
 
@@ -16,6 +16,5 @@ object Creator {
         return TrackSearchInteractorImpl(getTracksRepository())
     }
 
-    // если хочешь без интерактора:
     fun provideTracksRepository(): TracksRepository = getTracksRepository()
 }

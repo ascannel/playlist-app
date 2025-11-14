@@ -9,7 +9,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.playlist.domain.models.Track
@@ -18,13 +17,14 @@ import com.example.playlist.domain.models.Track
 @Composable
 fun AllTracksScreen(
     onBack: () -> Unit,
-    viewModel: SearchViewModel = viewModel()
+    viewModel: SearchViewModel = viewModel(
+        factory = SearchViewModel.getViewModelFactory()
+    )
 ) {
-    val context = LocalContext.current
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(Unit) {
-        viewModel.loadAllTracks(context)
+        viewModel.fetchAllTracks()
     }
 
     Scaffold(
@@ -45,7 +45,9 @@ fun AllTracksScreen(
                 .padding(padding)
         ) {
             when (state) {
-                is SearchState.Initial -> { /* ничего не рисуем */ }
+                is SearchState.Initial -> {
+                    // ничего не рисуем — сразу пойдём в fetchAllTracks()
+                }
 
                 is SearchState.Loading -> {
                     CircularProgressIndicator(Modifier.align(Alignment.Center))
@@ -55,7 +57,7 @@ fun AllTracksScreen(
                     val tracks = (state as SearchState.Success).foundList
                     if (tracks.isEmpty()) {
                         Text(
-                            text = "На устройстве не найдено треков в папке Music",
+                            text = "Треков пока нет",
                             modifier = Modifier.align(Alignment.Center)
                         )
                     } else {
