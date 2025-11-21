@@ -1,44 +1,77 @@
 package com.example.playlist.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.playlist.domain.models.Track
+import com.example.playlist.presentation.search.SearchState
+import com.example.playlist.presentation.search.SearchViewModel
+
+@Composable
+fun TrackListItem(track: Track) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Filled.MusicNote,
+            contentDescription = "Трек ${track.trackName}",
+            modifier = Modifier.size(40.dp)
+        )
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = track.trackName, style = MaterialTheme.typography.titleMedium)
+            Text(text = track.artistName, style = MaterialTheme.typography.bodyMedium)
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Text(text = track.trackTime, style = MaterialTheme.typography.bodySmall)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
-    onBack: () -> Unit
-) {
-    val vm: SearchViewModel = viewModel(
+    onBack: () -> Unit,
+    viewModel: SearchViewModel = viewModel(
         factory = SearchViewModel.getViewModelFactory()
     )
-    val state by vm.state.collectAsState()
+) {
+    // берём state ИЗ searchScreenState
+    val state by viewModel.searchScreenState.collectAsState()
 
-    var query by remember { mutableStateOf("") }
-
-    // При первом заходе — загрузить все треки (по факту search(""))
-    LaunchedEffect(Unit) {
-        vm.fetchAllTracks()
-    }
+    var text by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "Поиск") },
+                title = { Text("Поиск") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBack,
+                            contentDescription = "Назад"
+                        )
                     }
                 }
             )
@@ -51,64 +84,73 @@ fun SearchScreen(
                 .padding(16.dp)
         ) {
             OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
+                value = text,
+                onValueChange = { text = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text(text = "Поиск") },
+                singleLine = true,
+                placeholder = { Text("Поиск") },
                 leadingIcon = {
-                    IconButton(
-                        onClick = {
-                            // если хочешь искать через репозиторий — можно вызвать:
-                            // vm.search(query)
-                            // пока оставляем фильтрацию по уже загруженному списку
+                    Icon(
+                        imageVector = Icons.Filled.Search,
+                        contentDescription = "Search",
+                        modifier = Modifier.clickable {
+                            viewModel.search(text)
                         }
-                    ) {
-                        Icon(Icons.Default.Search, contentDescription = "Поиск")
-                    }
+                    )
                 },
                 trailingIcon = {
-                    if (query.isNotEmpty()) {
-                        IconButton(onClick = { query = "" }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Очистить")
-                        }
+                    if (text.isNotEmpty()) {
+                        Icon(
+                            imageVector = Icons.Filled.Clear,
+                            contentDescription = "Очистить",
+                            modifier = Modifier.clickable {
+                                text = ""
+                            }
+                        )
                     }
                 },
-                singleLine = true
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(
+                    onSearch = { viewModel.search(text) }
+                )
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
 
-            when (state) {
-                is SearchState.Initial,
-                is SearchState.Loading -> {
+            when (val s = state) {
+                SearchState.Initial -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.TopCenter
+                        contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.padding(top = 24.dp))
+                        Text("Введите строку для поиска")
+                    }
+                }
+
+                SearchState.Searching -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
                 }
 
                 is SearchState.Success -> {
-                    val tracks = (state as SearchState.Success).foundList
-                    val filtered = if (query.isBlank()) tracks else tracks.filter {
-                        it.trackName.contains(query, ignoreCase = true) ||
-                                it.artistName.contains(query, ignoreCase = true)
-                    }
-
-                    if (filtered.isEmpty()) {
+                    val tracks = s.list
+                    if (tracks.isEmpty()) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.TopCenter
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text("Ничего не найдено", modifier = Modifier.padding(top = 24.dp))
+                            Text("Ничего не найдено")
                         }
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(filtered) { track ->
+                            items(tracks) { track ->
                                 TrackListItem(track = track)
                                 Divider()
                             }
@@ -116,40 +158,18 @@ fun SearchScreen(
                     }
                 }
 
-                is SearchState.Error -> {
-                    val err = (state as SearchState.Error).error
+                is SearchState.Fail -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "Ошибка: $err", color = MaterialTheme.colorScheme.error)
+                        Text(
+                            text = "Ошибка: ${s.error}",
+                            color = MaterialTheme.colorScheme.error
+                        )
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun TrackListItem(track: Track) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Заглушка под обложку
-        Icon(
-            imageVector = Icons.Default.Search,
-            contentDescription = null,
-            modifier = Modifier.size(40.dp)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = track.trackName, style = MaterialTheme.typography.titleMedium)
-            Text(text = track.artistName, style = MaterialTheme.typography.bodyMedium)
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = track.trackTime, style = MaterialTheme.typography.bodySmall)
     }
 }

@@ -1,4 +1,4 @@
-package com.example.playlist.ui.screens
+package com.example.playlist.presentation.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -12,50 +12,36 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.IOException
 
-// ---- Состояния экрана поиска (как в методичке) ----
 sealed class SearchState {
-    object Initial : SearchState()
-    object Loading : SearchState()
-    data class Success(val foundList: List<Track>) : SearchState()
-    data class Error(val error: String) : SearchState()
+    object Initial : SearchState()          // экран только открылся
+    object Searching : SearchState()        // идёт поиск
+    data class Success(val list: List<Track>) : SearchState()
+    data class Fail(val error: String) : SearchState()
 }
 
-// ---- ViewModel, работающая НАПРЯМУЮ с репозиторием ----
 class SearchViewModel(
-    private val repository: TracksRepository
+    private val tracksRepository: TracksRepository
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow<SearchState>(SearchState.Initial)
-    val state = _state.asStateFlow()
+    private val _searchScreenState =
+        MutableStateFlow<SearchState>(SearchState.Initial)
+    val searchScreenState = _searchScreenState.asStateFlow()
 
-    /**
-     * Общий метод поиска треков по строке.
-     * Это то, что описывается в методичке:
-     * ViewModel обращается к TracksRepository и мапит результат в SearchState.
-     */
-    fun search(expression: String) {
+    fun search(whatSearch: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                _state.value = SearchState.Loading
-                val list = repository.searchTracks(expression)
-                _state.value = SearchState.Success(list)
+                _searchScreenState.value = SearchState.Searching
+                val list = tracksRepository.searchTracks(whatSearch)
+                _searchScreenState.value = SearchState.Success(list)
             } catch (e: IOException) {
-                _state.value = SearchState.Error(e.message ?: "Ошибка сети")
-            } catch (e: Exception) {
-                _state.value = SearchState.Error(e.message ?: "Неизвестная ошибка")
+                _searchScreenState.value =
+                    SearchState.Fail(e.message ?: "Неизвестная ошибка")
             }
         }
     }
 
-    /**
-     * Удобный хелпер — «получить все треки».
-     * В твоих экранах сейчас вызывается fetchAllTracks(), поэтому
-     * просто считаем, что "все" = поиск с пустой строкой.
-     * С точки зрения архитектуры это всё равно вызов search() и репозитория.
-     */
-    fun fetchAllTracks() {
-        search("")
-    }
+    // если вдруг ещё нужен «все треки» — можно просто вызвать поиск с пустой строкой
+    fun fetchAllTracks() = search("")
 
     companion object {
         fun getViewModelFactory(): ViewModelProvider.Factory =
@@ -67,4 +53,3 @@ class SearchViewModel(
             }
     }
 }
-

@@ -21,7 +21,6 @@ import com.example.playlist.R
 @Composable
 fun MainScreen(
     onSearchClick: () -> Unit,
-    onTracksClick: () -> Unit,
     onPlaylistsClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
@@ -44,7 +43,7 @@ fun MainScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Первый ряд: Поиск + Треки
+            // Первый ряд: Поиск
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -54,12 +53,6 @@ fun MainScreen(
                     icon = Icons.Filled.Search,
                     modifier = Modifier.weight(1f),
                     onClick = onSearchClick
-                )
-                QuickTile(
-                    title = "Треки",
-                    icon = Icons.Filled.List,
-                    modifier = Modifier.weight(1f),
-                    onClick = onTracksClick
                 )
             }
 

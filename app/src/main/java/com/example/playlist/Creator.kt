@@ -1,20 +1,15 @@
 package com.example.playlist
 
+import com.example.playlist.data.Storage
 import com.example.playlist.data.network.RetrofitNetworkClient
 import com.example.playlist.data.repository.TracksRepositoryImpl
-import com.example.playlist.domain.api.TrackSearchInteractor
 import com.example.playlist.domain.api.TracksRepository
-import com.example.playlist.domain.impl.TrackSearchInteractorImpl
 
 object Creator {
 
     fun getTracksRepository(): TracksRepository {
-        return TracksRepositoryImpl(RetrofitNetworkClient())
+        val storage = Storage()
+        val client = RetrofitNetworkClient(storage)
+        return TracksRepositoryImpl(client)
     }
-
-    fun provideTrackSearchInteractor(): TrackSearchInteractor {
-        return TrackSearchInteractorImpl(getTracksRepository())
-    }
-
-    fun provideTracksRepository(): TracksRepository = getTracksRepository()
 }

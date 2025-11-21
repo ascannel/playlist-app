@@ -1,6 +1,6 @@
 package com.example.playlist.data.network
 
-import com.example.playlist.creator.Storage
+import com.example.playlist.data.Storage
 import com.example.playlist.data.dto.BaseResponse
 import com.example.playlist.data.dto.TracksSearchRequest
 import com.example.playlist.data.dto.TracksSearchResponse

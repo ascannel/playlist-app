@@ -1,4 +1,4 @@
-package com.example.playlist.creator
+package com.example.playlist.data
 
 import com.example.playlist.data.dto.TrackDto
 
